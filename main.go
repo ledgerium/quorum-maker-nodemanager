@@ -16,6 +16,8 @@ import (
 
 var nodeUrl = "http://localhost:22000"
 var listenPort = ":8000"
+var gethLogsDirectory = "/root/quorum-maker/gethLogs"
+var constellationLogsDirectory ="/root/quorum-maker/constellationLogs"
 
 func init() {
 	log.SetFormatter(&log.JSONFormatter{})
@@ -33,6 +35,14 @@ func main() {
 		listenPort = ":" + os.Args[2]
 	}
 
+	if len(os.Args) > 3 {
+		gethLogsDirectory = ":" + os.Args[3]
+	}
+
+	if len(os.Args) > 4 {
+		constellationLogsDirectory = ":" + os.Args[4]
+	}
+
 	router := mux.NewRouter()
 	nodeService := service.NodeServiceImpl{nodeUrl}
 
@@ -40,8 +50,8 @@ func main() {
 	go func() {
 		for range ticker.C {
 			log.Debug("Rotating log for Geth and Constellation.")
-			nodeService.LogRotaterGeth()
-			nodeService.LogRotaterConst()
+			nodeService.LogRotaterGeth(gethLogsDirectory)
+			nodeService.LogRotaterConst(constellationLogsDirectory)
 		}
 	}()
 
@@ -101,8 +111,8 @@ func main() {
 	router.HandleFunc("/updateWhitelist", nodeService.OptionsHandler).Methods("OPTIONS")
 
 	router.PathPrefix("/contracts").Handler(http.StripPrefix("/contracts", http.FileServer(http.Dir("/root/quorum-maker/contracts"))))
-	router.PathPrefix("/geth").Handler(http.StripPrefix("/geth", http.FileServer(http.Dir("/home/node/qdata/gethLogs"))))
-	router.PathPrefix("/constellation").Handler(http.StripPrefix("/constellation", http.FileServer(http.Dir("/home/node/qdata/constellationLogs"))))
+	router.PathPrefix("/geth").Handler(http.StripPrefix("/geth", http.FileServer(http.Dir(gethLogsDirectory))))
+	router.PathPrefix("/constellation").Handler(http.StripPrefix("/constellation", http.FileServer(http.Dir(constellationLogsDirectory))))
 	router.PathPrefix("/").Handler(http.StripPrefix("/", NewFileServer("NodeManagerUI")))
 
 	log.Info(fmt.Sprintf("Node Manager listening on %s...", listenPort))

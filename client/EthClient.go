@@ -5,6 +5,7 @@ import (
 	"github.com/synechron-finlabs/quorum-maker-nodemanager/contracthandler"
 	"github.com/ybbus/jsonrpc"
 	"log"
+	logs "github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -274,6 +275,10 @@ func (ec *EthClient) SendTransaction(param contracthandler.ContractParam, rh con
 	rpcClient := jsonrpc.NewClient(ec.Url)
 
 	response, err := rpcClient.Call("personal_unlockAccount", param.From, param.Passwd, nil)
+	logs.Info("====");
+	logs.Info(err);
+	logs.Info(response.Error);
+	logs.Info("====");
 	if err != nil || response.Error != nil {
 
 		fmt.Println(err)
@@ -285,7 +290,10 @@ func (ec *EthClient) SendTransaction(param contracthandler.ContractParam, rh con
 		rh.Encode(), "0x1312d00", param.Parties}
 
 	response, err = rpcClient.Call("eth_sendTransaction", []interface{}{p})
-
+	logs.Info("====+");
+	logs.Info(err);
+	logs.Info(response.Error);
+	logs.Info("+====");
 	if err != nil || response.Error != nil {
 
 		fmt.Println(err)
@@ -319,7 +327,7 @@ func (ec *EthClient) DeployContracts(byteCode string, pubKeys []string, private 
 	} else {
 		params = contracthandler.ContractParam{From: coinbase, Passwd: ""}
 	}
-
+	logs.Info("Before Send");
 	cont := contracthandler.DeployContractHandler{byteCode}
 	txHash := ec.SendTransaction(params, cont)
 
