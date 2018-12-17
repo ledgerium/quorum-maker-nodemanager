@@ -1,72 +1,69 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.5.1;
 contract NetworkManagerContract {
 
     uint nodeCounter;
   
-    struct NodeDetails {  
+    struct NodeDetails {
+  
         string nodeName;
         string role; 
         string publickey;
         string enode;
-        string ip;
-        string id;
+	string ip;
     }
 
     mapping (string => NodeDetails)nodes;
     string[] enodeList;
     
-    event print(string nodeName, string role,string publickey, string enode, string ip, string id);
+    event print(string nodeName, string role,string publickey, string enode, string ip);
 
-    function registerNode(string n, string r, string p,string e, string ip, string id) public {
+    function registerNode(string memory n, string memory r, string memory p,string memory e, string memory ip) public {
 
         nodes[e].publickey = p;
         nodes[e].nodeName = n;
         nodes[e].role = r;
-        nodes[e].ip = ip;
-        nodes[e].id = id;
+	nodes[e].ip = ip;
         enodeList.push(e);
-        emit print(n, r, p, e, ip, id);
+        //emit print(n,r,p,e,ip);
     
     }
    
-    function getNodeDetails(uint16 _index) constant public returns (string n, string r,string p,string ip,string e,string id,uint i) {
+    function getNodeDetails(uint _index) view public returns (string memory n, string memory r,string memory p,string memory ip,string memory e,uint i) {
         NodeDetails memory nodeInfo = nodes[enodeList[_index]];
         return (
-            nodeInfo.nodeName,
-            nodeInfo.role,
-            nodeInfo.publickey,
-            nodeInfo.ip,
-            enodeList[_index],
-            nodeInfo.id,
-            _index
+                nodeInfo.nodeName,
+                nodeInfo.role,
+                nodeInfo.publickey,
+		nodeInfo.ip,
+                enodeList[_index],
+                _index
         );
     }
 
-    function getNodesCounter() public constant  returns (uint) {
+    function getNodesCounter() public view  returns (uint) {
         return enodeList.length;
     }
 
-    function updateNode(string n, string r, string p, string e, string ip, string id) public {
+    function updateNode(string memory n, string memory r, string memory p, string memory e, string memory ip) public {
 
         nodes[e].publickey = p;
         nodes[e].nodeName = n;
         nodes[e].role = r;
-        nodes[e].ip = ip;
-        nodes[e].id = id;
-        emit print(n, r, p, e, ip, id);
+	nodes[e].ip = ip;
+        //emit print(n,r,p,e,ip);
     }
 
-    function getNodeList(uint16 i)  public  constant   returns (string n, string r,string p,string ip,string e, string id) {
+    function getNodeList(uint i)  public  view   returns (string memory n, string memory r,string memory p,string memory ip,string memory e) {
         
         NodeDetails memory nodeInfo = nodes[enodeList[i]];
         return (
             nodeInfo.nodeName,
             nodeInfo.role,
             nodeInfo.publickey,
-	        nodeInfo.ip,
-            enodeList[i],
-            nodeInfo.id
+	    nodeInfo.ip,
+            enodeList[i]
         );
+        
     }
 
 }

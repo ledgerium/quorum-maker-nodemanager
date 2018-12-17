@@ -581,7 +581,7 @@ func (nsi *NodeServiceImpl) AttachedNodeDetailsHandler(w http.ResponseWriter, r 
 	io.Copy(&Buf, file)
 	content := Buf.String()
 
-	filePath := "/home/node/genesis.json"
+	filePath := "./genesis.json"
 	jsByte := []byte(content)
 	err = ioutil.WriteFile(filePath, jsByte, 0775)
 	if err != nil {

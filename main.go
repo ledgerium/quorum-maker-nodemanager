@@ -16,8 +16,8 @@ import (
 
 var nodeUrl = "http://localhost:22000"
 var listenPort = ":8000"
-var gethLogsDirectory = "/root/quorum-maker/gethLogs"
-var constellationLogsDirectory ="/root/quorum-maker/constellationLogs"
+var gethLogsDirectory = "./gethLogs"
+var constellationLogsDirectory ="./constellationLogs"
 
 func init() {
 	log.SetFormatter(&log.JSONFormatter{})
@@ -36,11 +36,11 @@ func main() {
 	}
 
 	if len(os.Args) > 3 {
-		gethLogsDirectory = ":" + os.Args[3]
+		gethLogsDirectory = os.Args[3]
 	}
 
 	if len(os.Args) > 4 {
-		constellationLogsDirectory = ":" + os.Args[4]
+		constellationLogsDirectory = os.Args[4]
 	}
 
 	router := mux.NewRouter()
@@ -110,7 +110,7 @@ func main() {
 	router.HandleFunc("/updateWhitelist", nodeService.UpdateWhitelistHandler).Methods("POST")
 	router.HandleFunc("/updateWhitelist", nodeService.OptionsHandler).Methods("OPTIONS")
 
-	router.PathPrefix("/contracts").Handler(http.StripPrefix("/contracts", http.FileServer(http.Dir("/root/quorum-maker/contracts"))))
+	router.PathPrefix("/contracts").Handler(http.StripPrefix("/contracts", http.FileServer(http.Dir("./contracts"))))
 	router.PathPrefix("/geth").Handler(http.StripPrefix("/geth", http.FileServer(http.Dir(gethLogsDirectory))))
 	router.PathPrefix("/constellation").Handler(http.StripPrefix("/constellation", http.FileServer(http.Dir(constellationLogsDirectory))))
 	router.PathPrefix("/").Handler(http.StripPrefix("/", NewFileServer("NodeManagerUI")))

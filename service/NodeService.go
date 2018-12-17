@@ -285,7 +285,7 @@ func (nsi *NodeServiceImpl) getGenesis(url string) (response GetGenesisResponse)
 		netId = util.MustGetString("NETWORK_ID", p)
 		constl = util.MustGetString("CONSTELLATION_PORT", p)
 	}
-	b, err := ioutil.ReadFile("/home/node/genesis.json")
+	b, err := ioutil.ReadFile("./genesis.json")
 	if err != nil {
 		//log.Println(err)
 	}
@@ -341,7 +341,7 @@ func (nsi *NodeServiceImpl) getCurrentNode(url string) NodeInfo {
 	r, _ := regexp.Compile("[s][t][a][r][t][_][A-Za-z0-9]*[.][s][h]")
 
 	//@TODO: Use of absolute path (starting with "/") is highly error prone
-	files, err := ioutil.ReadDir("/home/node")
+	files, err := ioutil.ReadDir(".")
 	if err != nil {
 		log.Println(err)
 	}
@@ -391,7 +391,7 @@ func (nsi *NodeServiceImpl) getCurrentNode(url string) NodeInfo {
 
 	raftRole = strings.TrimSuffix(raftRole, "\n")
 
-	b, err := ioutil.ReadFile("/home/node/genesis.json")
+	b, err := ioutil.ReadFile("./genesis.json")
 
 	if err != nil {
 		//log.Println(err)
@@ -1021,7 +1021,7 @@ func (nsi *NodeServiceImpl) resetCurrentNode() SuccessResponse {
 func (nsi *NodeServiceImpl) restartCurrentNode() SuccessResponse {
 	var successResponse SuccessResponse
 	r, _ := regexp.Compile("[s][t][a][r][t][_][A-Za-z0-9]*[.][s][h]")
-	files, err := ioutil.ReadDir("/home/node")
+	files, err := ioutil.ReadDir(".")
 	if err != nil {
 		log.Println(err)
 	}
@@ -1034,7 +1034,7 @@ func (nsi *NodeServiceImpl) restartCurrentNode() SuccessResponse {
 	}
 	filepath := fmt.Sprint("./", filename)
 	cmd := exec.Command(filepath)
-	cmd.Dir = "/home/node"
+	cmd.Dir = "."
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err = cmd.Start()
