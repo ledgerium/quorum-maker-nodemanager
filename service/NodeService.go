@@ -192,6 +192,7 @@ type SuccessResponseBool struct {
 type LatestBlockResponse struct {
 	LatestBlockNumber int64 `json:"latestBlockNumber"`
 	TimeElapsed       int64 `json:"TimeElapsed"`
+	CurrentTime       int64 `json:"currentTime"`
 }
 
 type NodeList struct {
@@ -233,6 +234,7 @@ type ContractTableRow struct {
 	ContractType string `json:"contractType"`
 	Description  string `json:"description"`
 	Timestamp    string `json:"timestamp"`
+	TransactionHash string `json:"transactionHash"`
 }
 
 type ContractCounter struct {
@@ -270,6 +272,7 @@ var contDescriptionMap = map[string]string{}
 var contTypeMap = map[string]string{}
 var contTimeMap = map[string]string{}
 var contSenderMap = map[string]string{}
+var contTransactionMap = map[string]string{}
 var contNameMap = map[string]string{}
 var chartSize = 10
 var warning = 0
@@ -1066,6 +1069,7 @@ func (nsi *NodeServiceImpl) latestBlockDetails(url string) LatestBlockResponse {
 	elapsedTime := currentTime - creationTimeUnix
 	latestBlockResponse.LatestBlockNumber = blockNumberInt
 	latestBlockResponse.TimeElapsed = elapsedTime
+	latestBlockResponse.CurrentTime = currentTime
 	return latestBlockResponse
 }
 
@@ -1298,7 +1302,8 @@ func (nsi *NodeServiceImpl) RegisterNodeDetails(url string) {
 		return
 	}
 	var nodeUrl = url
-	var registeredVal string
+	var registeredVal,totalNodesString, contractAdd string
+	var totalnodes int
 	exists := util.PropertyExists("REGISTERED", "./setup.conf")
 	if exists != "" {
 		p := properties.MustLoadFile("./setup.conf", properties.UTF8)
@@ -1309,7 +1314,7 @@ func (nsi *NodeServiceImpl) RegisterNodeDetails(url string) {
 
 		enode := ethClient.AdminNodeInfo().ID
 		fromAddress := ethClient.Coinbase()
-		var ipAddr, nodename, pubKey, role, id, contractAdd string
+		var ipAddr, nodename, pubKey, role, id string
 		existsA := util.PropertyExists("CURRENT_IP", "./setup.conf")
 		existsB := util.PropertyExists("NODENAME", "./setup.conf")
 		existsC := util.PropertyExists("PUBKEY", "./setup.conf")
@@ -1331,7 +1336,49 @@ func (nsi *NodeServiceImpl) RegisterNodeDetails(url string) {
 		util.DeleteProperty("ROLE=Unassigned", "./setup.conf")
 		nms := contractclient.NetworkMapContractClient{client.EthClient{url}, contracthandler.ContractParam{fromAddress, contractAdd, "", nil}}
 		nms.RegisterNode(nodename, role, pubKey, enode, ipAddr, id)
+	
+	exists := util.PropertyExists("TOTALNODES", "./setup.conf")
+	if exists != "" {
+		p := properties.MustLoadFile("./setup.conf", properties.UTF8)
+		totalNodesString = util.MustGetString("TOTALNODES", p)
+		totalnodes = util.StringToInt(totalNodesString);
 	}
+
+	for i := 0; i < totalnodes; i++ {
+		var fileName = "./"+util.IntToString(i)+"_setup.conf"
+		exists := util.PropertyExists("REGISTERED", fileName)
+		if exists != "" {
+			p := properties.MustLoadFile(fileName, properties.UTF8)
+			registeredVal = util.MustGetString("REGISTERED", p)
+		}
+		if registeredVal != "TRUE" {
+			var ipAddr, enode, nodename, pubKey, role, id string
+			existsA := util.PropertyExists("CURRENT_IP", fileName)
+			existsB := util.PropertyExists("NODENAME", fileName)
+			existsC := util.PropertyExists("PUBKEY", fileName)
+			existsD := util.PropertyExists("ROLE", fileName)
+			existsE := util.PropertyExists("RAFT_ID", fileName)
+			existsF := util.PropertyExists("ENODE", fileName)
+			if existsA != "" && existsB != "" && existsC != "" && existsD != "" && existsE != "" && existsF != "" {
+				p := properties.MustLoadFile(fileName, properties.UTF8)
+				ipAddr = util.MustGetString("CURRENT_IP", p)
+				nodename = util.MustGetString("NODENAME", p)
+				pubKey = util.MustGetString("PUBKEY", p)
+				role = util.MustGetString("ROLE", p)
+				id = util.MustGetString("RAFT_ID", p)
+				enode = util.MustGetString("ENODE", p)
+			}
+			registered := fmt.Sprint("REGISTERED=TRUE", "\n")
+			util.AppendStringToFile(fileName, registered)
+			util.DeleteProperty("REGISTERED=", fileName)
+			util.DeleteProperty("ROLE=Unassigned", fileName)
+			nms := contractclient.NetworkMapContractClient{client.EthClient{url}, contracthandler.ContractParam{fromAddress, contractAdd, "", nil}}
+			nms.RegisterNode(nodename, role, pubKey, enode, ipAddr, id)
+		}
+	}
+	}
+
+
 }
 
 func (nsi *NodeServiceImpl) NetworkManagerContractDeployer(url string) {
@@ -1513,6 +1560,7 @@ func (nsi *NodeServiceImpl) getContracts(url string) {
 					}
 				}
 				contSenderMap[txGetClient.ContractAddress] = clientTransactions.From
+				contTransactionMap[txGetClient.ContractAddress] = clientTransactions.Hash
 				if(nsi.CheckConsensus("RAFT")==true){
 					contTimeMap[txGetClient.ContractAddress] = strconv.Itoa(int(util.HexStringtoInt64(blockResponseClient.Timestamp) / 1000000000))
 				}else{
@@ -1569,6 +1617,7 @@ func (nsi *NodeServiceImpl) ContractList() []ContractTableRow {
 		contractList[i].Sender = contSenderMap[key]
 		contractList[i].Timestamp = contTimeMap[key]
 		contractList[i].Description = contDescriptionMap[key]
+		contractList[i].TransactionHash = contTransactionMap[key]
 		i++
 	}
 
