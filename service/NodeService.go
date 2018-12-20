@@ -19,12 +19,14 @@ import (
 	log "github.com/sirupsen/logrus"
 	"path/filepath"
 	"encoding/json"
+
 )
 
 type ConnectionInfo struct {
 	IP    string `json:"ip"`
 	Port  int    `json:"port"`
 	Enode string `json:"enode"`
+	ExternalIP string `json:"externalIP"`
 }
 
 type PendingRequests struct {
@@ -360,16 +362,18 @@ func (nsi *NodeServiceImpl) getCurrentNode(url string) NodeInfo {
 	nodename = strings.TrimSuffix(nodename, ".sh")
 	nodename = strings.TrimPrefix(nodename, "start_")
 
-	var ipAddr, raftId, rpcPort, nodeName string
+	var ipAddr, raftId, rpcPort, nodeName , ipExternal string
 	existsA := util.PropertyExists("CURRENT_IP", "./setup.conf")
 	existsB := util.PropertyExists("RAFT_ID", "./setup.conf")
 	existsC := util.PropertyExists("RPC_PORT", "./setup.conf")
 	existsD := util.PropertyExists("NODENAME", "./setup.conf")
-	if existsA != "" && existsB != "" && existsC != "" && existsD != "" {
+	existsE := util.PropertyExists("EXTERNAL_IP","./setup.conf")
+	if existsA != "" && existsB != "" && existsC != "" && existsD != "" && existsE != "" {
 		ipAddr = util.MustGetString("CURRENT_IP", p)
 		raftId = util.MustGetString("RAFT_ID", p)
 		rpcPort = util.MustGetString("RPC_PORT", p)
 		nodeName = util.MustGetString("NODENAME", p)
+		ipExternal = util.MustGetString("EXTERNAL_IP", p)
 	}
 	raftIdInt, err := strconv.Atoi(raftId)
 	if err != nil {
@@ -402,7 +406,7 @@ func (nsi *NodeServiceImpl) getCurrentNode(url string) NodeInfo {
 
 	genesis := string(b)
 	genesis = strings.Replace(genesis, "\n", "", -1)
-	conn := ConnectionInfo{ipAddr, rpcPortInt, enode}
+	conn := ConnectionInfo{ipAddr, rpcPortInt, enode, ipExternal}
 	responseObj := NodeInfo{nodeName, count, totalCount, activeStatus, conn, raftRole, raftIdInt, blockNumberInt, pendingTxCount, genesis, thisAdminInfo}
 	return responseObj
 }
@@ -1337,42 +1341,43 @@ func (nsi *NodeServiceImpl) RegisterNodeDetails(url string) {
 		nms := contractclient.NetworkMapContractClient{client.EthClient{url}, contracthandler.ContractParam{fromAddress, contractAdd, "", nil}}
 		nms.RegisterNode(nodename, role, pubKey, enode, ipAddr, id)
 	
-	exists := util.PropertyExists("TOTALNODES", "./setup.conf")
+	exists := util.PropertyExists("TOTAL_NODES", "./setup.conf")
 	if exists != "" {
 		p := properties.MustLoadFile("./setup.conf", properties.UTF8)
-		totalNodesString = util.MustGetString("TOTALNODES", p)
+		totalNodesString = util.MustGetString("TOTAL_NODES", p)
 		totalnodes = util.StringToInt(totalNodesString);
 	}
 
-	for i := 0; i < totalnodes; i++ {
-		var fileName = "./"+util.IntToString(i)+"_setup.conf"
-		exists := util.PropertyExists("REGISTERED", fileName)
+	for i := 1; i < totalnodes; i++ {
+		var fileName = "./setup.conf"
+		exists := util.PropertyExists(strconv.Itoa(i)+"_"+"REGISTERED", fileName)
 		if exists != "" {
 			p := properties.MustLoadFile(fileName, properties.UTF8)
-			registeredVal = util.MustGetString("REGISTERED", p)
+			registeredVal = util.MustGetString(strconv.Itoa(i)+"_"+"REGISTERED", p)
 		}
 		if registeredVal != "TRUE" {
 			var ipAddr, enode, nodename, pubKey, role, id string
-			existsA := util.PropertyExists("CURRENT_IP", fileName)
-			existsB := util.PropertyExists("NODENAME", fileName)
-			existsC := util.PropertyExists("PUBKEY", fileName)
-			existsD := util.PropertyExists("ROLE", fileName)
-			existsE := util.PropertyExists("RAFT_ID", fileName)
-			existsF := util.PropertyExists("ENODE", fileName)
+			existsA := util.PropertyExists(strconv.Itoa(i)+"_"+"CURRENT_IP", fileName)
+			existsB := util.PropertyExists(strconv.Itoa(i)+"_"+"NODENAME", fileName)
+			existsC := util.PropertyExists(strconv.Itoa(i)+"_"+"PUBKEY", fileName)
+			existsD := util.PropertyExists(strconv.Itoa(i)+"_"+"ROLE", fileName)
+			existsE := util.PropertyExists(strconv.Itoa(i)+"_"+"RAFT_ID", fileName)
+			existsF := util.PropertyExists(strconv.Itoa(i)+"_"+"ENODE", fileName)
 			if existsA != "" && existsB != "" && existsC != "" && existsD != "" && existsE != "" && existsF != "" {
 				p := properties.MustLoadFile(fileName, properties.UTF8)
-				ipAddr = util.MustGetString("CURRENT_IP", p)
-				nodename = util.MustGetString("NODENAME", p)
-				pubKey = util.MustGetString("PUBKEY", p)
-				role = util.MustGetString("ROLE", p)
-				id = util.MustGetString("RAFT_ID", p)
-				enode = util.MustGetString("ENODE", p)
+				ipAddr = util.MustGetString(strconv.Itoa(i)+"_"+"CURRENT_IP", p)
+				nodename = util.MustGetString(strconv.Itoa(i)+"_"+"NODENAME", p)
+				pubKey = util.MustGetString(strconv.Itoa(i)+"_"+"PUBKEY", p)
+				role = util.MustGetString(strconv.Itoa(i)+"_"+"ROLE", p)
+				id = util.MustGetString(strconv.Itoa(i)+"_"+"RAFT_ID", p)
+				enode = util.MustGetString(strconv.Itoa(i)+"_"+"ENODE", p)
 			}
-			registered := fmt.Sprint("REGISTERED=TRUE", "\n")
+			registered := fmt.Sprint(strconv.Itoa(i)+"_"+"REGISTERED=TRUE", "\n")
 			util.AppendStringToFile(fileName, registered)
-			util.DeleteProperty("REGISTERED=", fileName)
-			util.DeleteProperty("ROLE=Unassigned", fileName)
+			util.DeleteProperty(strconv.Itoa(i)+"_"+"REGISTERED=", fileName)
+			util.DeleteProperty(strconv.Itoa(i)+"_"+"ROLE=Unassigned", fileName)
 			nms := contractclient.NetworkMapContractClient{client.EthClient{url}, contracthandler.ContractParam{fromAddress, contractAdd, "", nil}}
+			fmt.Println(nodename, role, pubKey, enode, ipAddr, id)
 			nms.RegisterNode(nodename, role, pubKey, enode, ipAddr, id)
 		}
 	}
