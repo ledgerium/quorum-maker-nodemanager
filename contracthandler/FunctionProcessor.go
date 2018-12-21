@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"github.com/synechron-finlabs/quorum-maker-nodemanager/util"
 	"strings"	
-	"fmt"	
 )
 
 
