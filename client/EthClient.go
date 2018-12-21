@@ -299,7 +299,7 @@ func (ec *EthClient) SendTransaction(param contracthandler.ContractParam, rh con
 		fmt.Println(err)
 	}
 
-	response, err := rpcClient.Call("personal_lockAccount", param.From, param.Passwd, nil)
+	response, err = rpcClient.Call("personal_lockAccount", param.From, param.Passwd, nil)
 	logs.Info("====*");
 	logs.Info(err);
 	logs.Info(response.Error);

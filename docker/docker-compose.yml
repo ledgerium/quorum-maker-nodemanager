@@ -737,6 +737,7 @@ services:
       - |
         set -u
         set -e
+        RESPONSE=`curl https://ipinfo.io/ip` || '172.16.239.10'
         cp /conf/setup.conf /root/quorum-maker/
         cd /root/quorum-maker/
         ./NodeManager http://172.16.239.10:8545 9999 /logs/gethLogs/ /logs/constellationLogs
