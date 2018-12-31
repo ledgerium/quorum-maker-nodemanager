@@ -274,7 +274,7 @@ func (ec *EthClient) SendTransaction(param contracthandler.ContractParam, rh con
 
 	rpcClient := jsonrpc.NewClient(ec.Url)
 
-	response, err := rpcClient.Call("personal_unlockAccount", param.From, param.Passwd, nil)
+	response, err := rpcClient.Call("personal_unlockAccount", param.From, param.Passwd,2)
 	logs.Info("====");
 	logs.Info(err);
 	logs.Info(response.Error);
@@ -299,17 +299,17 @@ func (ec *EthClient) SendTransaction(param contracthandler.ContractParam, rh con
 		fmt.Println(err)
 	}
 
-	response, err = rpcClient.Call("personal_lockAccount", param.From, param.Passwd, nil)
-	logs.Info("====*");
-	logs.Info(err);
-	logs.Info(response.Error);
-	logs.Info("*====");
-	if err != nil || response.Error != nil {
+	response1, err1 := rpcClient.Call("personal_lockAccount", param.From)
+	logs.Info("====+");
+	logs.Info(err1);
+	logs.Info(response1.Error);
+	logs.Info("+====");
+	if err != nil || response1.Error != nil {
 
-		fmt.Println(err)
+		fmt.Println(err1)
 	}
 
-	//fmt.Printf("%s", response.Result)
+	
 	return fmt.Sprintf("%s", response.Result)
 
 }
