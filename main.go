@@ -18,6 +18,7 @@ var nodeUrl = "http://localhost:22000"
 var listenPort = ":8000"
 var gethLogsDirectory = "./gethLogs"
 var constellationLogsDirectory ="./constellationLogs"
+var filePath = "/quorum-maker/setup.conf"
 
 func init() {
 	log.SetFormatter(&log.JSONFormatter{})
@@ -43,8 +44,12 @@ func main() {
 		constellationLogsDirectory = os.Args[4]
 	}
 
+	if len(os.Args) > 5 {
+		filePath = os.Args[5]
+	}
+
 	router := mux.NewRouter()
-	nodeService := service.NodeServiceImpl{nodeUrl}
+	nodeService := service.NodeServiceImpl{nodeUrl,filePath}
 
 	ticker := time.NewTicker(86400 * time.Second)
 	go func() {
@@ -65,7 +70,7 @@ func main() {
 		nodeService.IPWhitelister()
 	}()
 
-	networkMapService := contractclient.NetworkMapContractClient{EthClient: client.EthClient{nodeUrl}}
+	networkMapService := contractclient.NetworkMapContractClient{EthClient: client.EthClient{nodeUrl,filePath}}
 	router.HandleFunc("/txn/{txn_hash}", nodeService.GetTransactionInfoHandler).Methods("GET")
 	router.HandleFunc("/txn", nodeService.GetLatestTransactionInfoHandler).Methods("GET")
 	router.HandleFunc("/block/{block_no}", nodeService.GetBlockInfoHandler).Methods("GET")

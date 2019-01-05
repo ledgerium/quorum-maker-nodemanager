@@ -48,7 +48,7 @@ func (nmc *NetworkMapContractClient) RegisterNode(name string, role string, publ
 			return "Exists"
 		}
 	}
-	return nmc.SendTransaction(nmc.ContractParam, RegisterUpdateNodeFuncHandler{nd, registerNodeFunSig})
+	return nmc.SendRawTransaction(nmc.ContractParam, RegisterUpdateNodeFuncHandler{nd, registerNodeFunSig},1)
 
 }
 
@@ -92,7 +92,7 @@ func (nmc *NetworkMapContractClient) UpdateNode(name string, role string, public
 	}
 
 	nd := NodeDetails{name, role, publicKey, enode, ip, id}
-	return nmc.SendTransaction(nmc.ContractParam, RegisterUpdateNodeFuncHandler{nd, updateNodeFunSig})
+	return nmc.SendRawTransaction(nmc.ContractParam, RegisterUpdateNodeFuncHandler{nd, updateNodeFunSig},1)
 }
 
 type RegisterUpdateNodeFuncHandler struct {

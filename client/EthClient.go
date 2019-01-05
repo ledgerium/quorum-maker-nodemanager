@@ -2,10 +2,16 @@ package client
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/magiconair/properties"
+	logs "github.com/sirupsen/logrus"
 	"github.com/synechron-finlabs/quorum-maker-nodemanager/contracthandler"
+	"github.com/synechron-finlabs/quorum-maker-nodemanager/util"
 	"github.com/ybbus/jsonrpc"
 	"log"
-	logs "github.com/sirupsen/logrus"
+	"math/big"
 	"time"
 )
 
@@ -121,6 +127,14 @@ type Payload struct {
 	PrivateFor []string `json:"privateFor,omitempty"`
 }
 
+type GethTxn struct {
+	To   		string     `json:"to,omitempty"`
+	From 		string     `json:"from"`
+	Data 		string     `json:"input"`
+	Gaslimit    string     `json:"gas"`
+}
+
+
 type CallPayload struct {
 	To   string `json:"to"`
 	Data string `json:"data"`
@@ -128,7 +142,9 @@ type CallPayload struct {
 
 type EthClient struct {
 	Url string
+	FilePath string
 }
+var Nonce = make(map[string]uint64)
 
 func (ec *EthClient) GetTransactionByHash(txNo string) TransactionDetailsResponse {
 	rpcClient := jsonrpc.NewClient(ec.Url)
@@ -275,10 +291,6 @@ func (ec *EthClient) SendTransaction(param contracthandler.ContractParam, rh con
 	rpcClient := jsonrpc.NewClient(ec.Url)
 
 	response, err := rpcClient.Call("personal_unlockAccount", param.From, param.Passwd,2)
-	logs.Info("====");
-	logs.Info(err);
-	logs.Info(response.Error);
-	logs.Info("====");
 	if err != nil || response.Error != nil {
 
 		fmt.Println(err)
@@ -290,28 +302,78 @@ func (ec *EthClient) SendTransaction(param contracthandler.ContractParam, rh con
 		rh.Encode(), "0x1312d00", param.Parties}
 
 	response, err = rpcClient.Call("eth_sendTransaction", []interface{}{p})
-	logs.Info("====+");
-	logs.Info(err);
-	logs.Info(response.Error);
-	logs.Info("+====");
 	if err != nil || response.Error != nil {
 
 		fmt.Println(err)
 	}
 
 	response1, err1 := rpcClient.Call("personal_lockAccount", param.From)
-	logs.Info("====+");
-	logs.Info(err1);
-	logs.Info(response1.Error);
-	logs.Info("+====");
 	if err != nil || response1.Error != nil {
 
 		fmt.Println(err1)
 	}
 
-	
+
 	return fmt.Sprintf("%s", response.Result)
 
+}
+
+func (ec *EthClient) getNonce(address common.Address) uint64 {
+	if(Nonce[address.Hex()] == 0){
+		rpcClient := jsonrpc.NewClient(ec.Url)
+		response, err := rpcClient.Call("eth_getTransactionCount", []interface{}{address,"pending"})
+		if err != nil {
+			logs.Info(err)
+		}
+		nonce := util.HexStringtoUInt64(fmt.Sprintf("%s", response.Result))
+		Nonce[address.Hex()] = nonce+1
+		return nonce
+	} else{
+		nonce := Nonce[address.Hex()]
+		Nonce[address.Hex()] = nonce+1
+		return nonce
+	}
+}
+
+func (ec *EthClient) SendRawTransaction(param contracthandler.ContractParam, rh contracthandler.RequestHandler, txflag int64 ) string {
+	rpcClient := jsonrpc.NewClient(ec.Url)
+	bytes := common.Hex2Bytes(rh.Encode()[2:])  //transaction data
+	//key to sign transaction
+	var key string
+	exists := util.PropertyExists("PRIVATE_KEY", ec.FilePath)
+	if exists != "" {
+		p := properties.MustLoadFile(ec.FilePath, properties.UTF8)
+		key = util.MustGetString("PRIVATE_KEY", p)
+	}
+	privateKey, err := crypto.HexToECDSA(key)
+	from := crypto.PubkeyToAddress(privateKey.PublicKey)
+	if err != nil {
+		logs.Info(err)
+	}
+	nonce := ec.getNonce(from)
+	var ts types.Transactions
+
+	if(txflag == 0) { //contract creation
+		tx := types.NewContractCreation(nonce, big.NewInt(0), 10000000, big.NewInt(0), bytes)
+		signTx, _ := types.SignTx(tx, types.NewEIP155Signer(big.NewInt(2018)), privateKey)
+		ts = types.Transactions{signTx}
+	} else {
+		to := common.HexToAddress(param.To);
+		tx := types.NewTransaction(nonce, to, big.NewInt(0), 10000000, big.NewInt(0), bytes)
+		signTx, _ := types.SignTx(tx, types.NewEIP155Signer(big.NewInt(2018)), privateKey)
+		ts = types.Transactions{signTx}
+	}
+	txparam := fmt.Sprintf("%x", ts.GetRlp(0))
+	txparam = "0x"+txparam
+	response, err := rpcClient.Call("eth_sendRawTransaction", []interface{}{txparam})
+	logs.Info("====");
+	logs.Info(err);
+	logs.Info(response.Error);
+	logs.Info("====");
+	if err != nil || response.Error != nil {
+		fmt.Println(err)
+	}
+	return fmt.Sprintf("%s", response.Result)
 }
 
 func (ec *EthClient) EthCall(param contracthandler.ContractParam, encoder contracthandler.RequestHandler, decoder contracthandler.ResponseHandler) {
@@ -339,7 +401,7 @@ func (ec *EthClient) DeployContracts(byteCode string, pubKeys []string, private 
 	}
 	logs.Info("Before Send");
 	cont := contracthandler.DeployContractHandler{byteCode}
-	txHash := ec.SendTransaction(params, cont)
+	txHash := ec.SendRawTransaction(params, cont,0)
 
 	time.Sleep(1 * time.Second)
 

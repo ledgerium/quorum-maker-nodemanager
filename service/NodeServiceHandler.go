@@ -597,7 +597,7 @@ func (nsi *NodeServiceImpl) AttachedNodeDetailsHandler(w http.ResponseWriter, r 
 
 	Buf.Reset()
 	fmt.Println("Updates have been saved. Please press Ctrl+C to exit from this container and run start.sh to apply changes")
-	state := currentState()
+	state := nsi.currentState()
 	if state == "NI" {
 		util.DeleteProperty("STATE=NI", "/home/setup.conf")
 		stateInitialized := fmt.Sprint("STATE=I\n")
