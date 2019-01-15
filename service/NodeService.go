@@ -2,30 +2,29 @@ package service
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
-	"github.com/magiconair/properties"
-	"github.com/synechron-finlabs/quorum-maker-nodemanager/client"
-	"github.com/synechron-finlabs/quorum-maker-nodemanager/contractclient"
-	"github.com/synechron-finlabs/quorum-maker-nodemanager/contracthandler"
-	"github.com/synechron-finlabs/quorum-maker-nodemanager/util"
-	"gopkg.in/gomail.v2"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-	log "github.com/sirupsen/logrus"
-	"path/filepath"
-	"encoding/json"
 
+	"github.com/magiconair/properties"
+	log "github.com/sirupsen/logrus"
+	"github.com/synechron-finlabs/quorum-maker-nodemanager/client"
+	"github.com/synechron-finlabs/quorum-maker-nodemanager/contractclient"
+	"github.com/synechron-finlabs/quorum-maker-nodemanager/contracthandler"
+	"github.com/synechron-finlabs/quorum-maker-nodemanager/util"
 )
 
 type ConnectionInfo struct {
-	IP    string `json:"ip"`
-	Port  int    `json:"port"`
-	Enode string `json:"enode"`
+	IP         string `json:"ip"`
+	Port       int    `json:"port"`
+	Enode      string `json:"enode"`
 	ExternalIP string `json:"externalIP"`
 }
 
@@ -219,7 +218,7 @@ type LatencyResponse struct {
 }
 
 type NodeServiceImpl struct {
-	Url string
+	Url      string
 	FilePath string
 }
 
@@ -230,13 +229,13 @@ type ChartInfo struct {
 }
 
 type ContractTableRow struct {
-	ContractAdd  string `json:"contractAddress"`
-	ContractName string `json:"contractName"`
-	ABIContent   string `json:"abi"`
-	Sender       string `json:"sender"`
-	ContractType string `json:"contractType"`
-	Description  string `json:"description"`
-	Timestamp    string `json:"timestamp"`
+	ContractAdd     string `json:"contractAddress"`
+	ContractName    string `json:"contractName"`
+	ABIContent      string `json:"abi"`
+	Sender          string `json:"sender"`
+	ContractType    string `json:"contractType"`
+	Description     string `json:"description"`
+	Timestamp       string `json:"timestamp"`
 	TransactionHash string `json:"transactionHash"`
 }
 
@@ -304,7 +303,7 @@ func (nsi *NodeServiceImpl) getGenesis(url string) (response GetGenesisResponse)
 
 func (nsi *NodeServiceImpl) joinNetwork(enode string, url string) string {
 	var nodeUrl = url
-	ethClient := client.EthClient{nodeUrl,nsi.FilePath}
+	ethClient := client.EthClient{nodeUrl, nsi.FilePath}
 	raftId := ethClient.RaftAddPeer(enode)
 	var contractAdd string
 	exists := util.PropertyExists("CONTRACT_ADD", nsi.FilePath)
@@ -319,7 +318,7 @@ func (nsi *NodeServiceImpl) joinNetwork(enode string, url string) string {
 //@TODO: If this function is repeatedly called from UI, please cache the static informations.
 func (nsi *NodeServiceImpl) getCurrentNode(url string) NodeInfo {
 	var nodeUrl = url
-	ethClient := client.EthClient{nodeUrl,nsi.FilePath}
+	ethClient := client.EthClient{nodeUrl, nsi.FilePath}
 	fromAddress := ethClient.Coinbase()
 	var contractAdd string
 	var p *properties.Properties
@@ -329,7 +328,7 @@ func (nsi *NodeServiceImpl) getCurrentNode(url string) NodeInfo {
 		contractAdd = util.MustGetString("CONTRACT_ADD", p)
 	}
 
-	nms := contractclient.NetworkMapContractClient{client.EthClient{url,nsi.FilePath}, contracthandler.ContractParam{fromAddress, contractAdd, "", nil}}
+	nms := contractclient.NetworkMapContractClient{client.EthClient{url, nsi.FilePath}, contracthandler.ContractParam{fromAddress, contractAdd, "", nil}}
 
 	totalCount := len(nms.GetNodeDetailsList())
 	var activeStatus string
@@ -363,12 +362,12 @@ func (nsi *NodeServiceImpl) getCurrentNode(url string) NodeInfo {
 	nodename = strings.TrimSuffix(nodename, ".sh")
 	nodename = strings.TrimPrefix(nodename, "start_")
 
-	var ipAddr, raftId, rpcPort, nodeName , ipExternal string
+	var ipAddr, raftId, rpcPort, nodeName, ipExternal string
 	existsA := util.PropertyExists("CURRENT_IP", nsi.FilePath)
 	existsB := util.PropertyExists("RAFT_ID", nsi.FilePath)
 	existsC := util.PropertyExists("RPC_PORT", nsi.FilePath)
 	existsD := util.PropertyExists("NODENAME", nsi.FilePath)
-	existsE := util.PropertyExists("EXTERNAL_IP",nsi.FilePath)
+	existsE := util.PropertyExists("EXTERNAL_IP", nsi.FilePath)
 	if existsA != "" && existsB != "" && existsC != "" && existsD != "" && existsE != "" {
 		ipAddr = util.MustGetString("CURRENT_IP", p)
 		raftId = util.MustGetString("RAFT_ID", p)
@@ -414,7 +413,7 @@ func (nsi *NodeServiceImpl) getCurrentNode(url string) NodeInfo {
 
 func (nsi *NodeServiceImpl) getOtherPeer(peerId string, url string) client.AdminPeers {
 	var nodeUrl = url
-	ethClient := client.EthClient{nodeUrl,nsi.FilePath}
+	ethClient := client.EthClient{nodeUrl, nsi.FilePath}
 	otherPeersResponse := ethClient.AdminPeers()
 	for _, item := range otherPeersResponse {
 		if item.ID == peerId {
@@ -427,14 +426,14 @@ func (nsi *NodeServiceImpl) getOtherPeer(peerId string, url string) client.Admin
 
 func (nsi *NodeServiceImpl) getOtherPeers(url string) []client.AdminPeers {
 	var nodeUrl = url
-	ethClient := client.EthClient{nodeUrl,nsi.FilePath}
+	ethClient := client.EthClient{nodeUrl, nsi.FilePath}
 	otherPeersResponse := ethClient.AdminPeers()
 	return otherPeersResponse
 }
 
 func (nsi *NodeServiceImpl) getPendingTransactions(url string) []TransactionDetailsResponse {
 	var nodeUrl = url
-	ethClient := client.EthClient{nodeUrl,nsi.FilePath}
+	ethClient := client.EthClient{nodeUrl, nsi.FilePath}
 	clientPendingTxResponses := ethClient.PendingTransactions()
 
 	pendingTxResponse := make([]TransactionDetailsResponse, len(clientPendingTxResponses))
@@ -449,7 +448,7 @@ func (nsi *NodeServiceImpl) getPendingTransactions(url string) []TransactionDeta
 
 func (nsi *NodeServiceImpl) getBlockInfo(blockno int64, url string) BlockDetailsResponse {
 	var nodeUrl = url
-	ethClient := client.EthClient{nodeUrl,nsi.FilePath}
+	ethClient := client.EthClient{nodeUrl, nsi.FilePath}
 	blockNoHex := strconv.FormatInt(blockno, 16)
 	bNoHex := fmt.Sprint("0x", blockNoHex)
 	var blockResponse BlockDetailsResponse
@@ -457,9 +456,9 @@ func (nsi *NodeServiceImpl) getBlockInfo(blockno int64, url string) BlockDetails
 	currentTime := time.Now().Unix()
 	creationTime := util.HexStringtoInt64(blockResponseClient.Timestamp)
 	var creationTimeUnix int64
-	if(nsi.CheckConsensus("RAFT")==true){
+	if nsi.CheckConsensus("RAFT") == true {
 		creationTimeUnix = creationTime / 1000000000
-	}else{
+	} else {
 		creationTimeUnix = creationTime
 	}
 	elapsedTime := currentTime - creationTimeUnix
@@ -500,7 +499,7 @@ func (nsi *NodeServiceImpl) getLatestBlockInfo(count string, reference string, u
 	countValInt, _ := strconv.Atoi(count)
 	countVal := int64(countValInt)
 	var nodeUrl = url
-	ethClient := client.EthClient{nodeUrl,nsi.FilePath}
+	ethClient := client.EthClient{nodeUrl, nsi.FilePath}
 	var blockNumber int64
 	if reference == "" {
 		blockNumber = util.HexStringtoInt64(ethClient.BlockNumber())
@@ -525,9 +524,9 @@ func (nsi *NodeServiceImpl) getLatestBlockInfo(count string, reference string, u
 		currentTime := time.Now().Unix()
 		creationTime := util.HexStringtoInt64(blockResponseClient.Timestamp)
 		var creationTimeUnix int64
-		if(nsi.CheckConsensus("RAFT")==true){
+		if nsi.CheckConsensus("RAFT") == true {
 			creationTimeUnix = creationTime / 1000000000
-		}else{
+		} else {
 			creationTimeUnix = creationTime
 		}
 		var elapsedTime = currentTime - creationTimeUnix
@@ -552,7 +551,7 @@ func (nsi *NodeServiceImpl) getLatestTransactionInfo(count string, url string) [
 	countValInt, _ := strconv.Atoi(count)
 	countVal := int64(countValInt)
 	var nodeUrl = url
-	ethClient := client.EthClient{nodeUrl,nsi.FilePath}
+	ethClient := client.EthClient{nodeUrl, nsi.FilePath}
 	blockNumber := util.HexStringtoInt64(ethClient.BlockNumber())
 	start := blockNumber - countVal + 1
 	blockResponse := make([]BlockDetailsResponse, countVal)
@@ -563,9 +562,9 @@ func (nsi *NodeServiceImpl) getLatestTransactionInfo(count string, url string) [
 		currentTime := time.Now().Unix()
 		creationTime := util.HexStringtoInt64(blockResponseClient.Timestamp)
 		var creationTimeUnix int64
-		if(nsi.CheckConsensus("RAFT")==true){
+		if nsi.CheckConsensus("RAFT") == true {
 			creationTimeUnix = creationTime / 1000000000
-		}else{
+		} else {
 			creationTimeUnix = creationTime
 		}
 		elapsedTime := currentTime - creationTimeUnix
@@ -589,7 +588,7 @@ func (nsi *NodeServiceImpl) getLatestTransactionInfo(count string, url string) [
 
 func (nsi *NodeServiceImpl) getTransactionInfo(txno string, url string) TransactionDetailsResponse {
 	var nodeUrl = url
-	ethClient := client.EthClient{nodeUrl,nsi.FilePath}
+	ethClient := client.EthClient{nodeUrl, nsi.FilePath}
 	var txResponse TransactionDetailsResponse
 	txResponseClient := ethClient.GetTransactionByHash(txno)
 
@@ -600,9 +599,9 @@ func (nsi *NodeServiceImpl) getTransactionInfo(txno string, url string) Transact
 	currentTime := time.Now().Unix()
 	creationTime := util.HexStringtoInt64(blockResponseClient.Timestamp)
 	var creationTimeUnix int64
-	if(nsi.CheckConsensus("RAFT")==true){
+	if nsi.CheckConsensus("RAFT") == true {
 		creationTimeUnix = creationTime / 1000000000
-	}else{
+	} else {
 		creationTimeUnix = creationTime
 	}
 	elapsedTime := currentTime - creationTimeUnix
@@ -624,7 +623,7 @@ func (nsi *NodeServiceImpl) getTransactionReceipt(txno string, url string) Trans
 }
 
 func (nsi *NodeServiceImpl) populateTransactionObject(txno string, url string) TransactionReceiptResponse {
-	ethClient := client.EthClient{url,nsi.FilePath}
+	ethClient := client.EthClient{url, nsi.FilePath}
 	getTransaction := ethClient.GetTransactionByHash(txno)
 	var txResponse TransactionReceiptResponse
 	getTransactionReceipt := ethClient.GetTransactionReceipt(txno)
@@ -664,9 +663,9 @@ func (nsi *NodeServiceImpl) populateTransactionObject(txno string, url string) T
 	currentTime := time.Now().Unix()
 	creationTime := util.HexStringtoInt64(blockResponseClient.Timestamp)
 	var creationTimeUnix int64
-	if(nsi.CheckConsensus("RAFT")==true){
+	if nsi.CheckConsensus("RAFT") == true {
 		creationTimeUnix = creationTime / 1000000000
-	} else{
+	} else {
 		creationTimeUnix = creationTime
 	}
 	elapsedTime := currentTime - creationTimeUnix
@@ -678,7 +677,7 @@ func (nsi *NodeServiceImpl) decodeTransactionObject(txnDetails *TransactionRecei
 	var quorumPayload string
 	var decoded bool
 
-	ethClient := client.EthClient{url,nsi.FilePath}
+	ethClient := client.EthClient{url, nsi.FilePath}
 
 	if util.HexStringtoInt64(txnDetails.V) == 37 || util.HexStringtoInt64(txnDetails.V) == 38 {
 		quorumPayload = ethClient.GetQuorumPayload(txnDetails.Input)
@@ -754,15 +753,15 @@ func (nsi *NodeServiceImpl) decodeTransactionObject(txnDetails *TransactionRecei
 }
 
 func (nsi *NodeServiceImpl) calculateTimeElapsed(txnDetails *TransactionReceiptResponse, url string) {
-	ethClient := client.EthClient{url,nsi.FilePath}
+	ethClient := client.EthClient{url, nsi.FilePath}
 	getTransactionReceipt := ethClient.GetTransactionReceipt(txnDetails.TransactionHash)
 	blockResponseClient := ethClient.GetBlockByNumber(getTransactionReceipt.BlockNumber)
 	currentTime := time.Now().Unix()
 	creationTime := util.HexStringtoInt64(blockResponseClient.Timestamp)
 	var creationTimeUnix int64
-	if(nsi.CheckConsensus("RAFT")==true){
+	if nsi.CheckConsensus("RAFT") == true {
 		creationTimeUnix = creationTime / 1000000000
-	} else{
+	} else {
 		creationTimeUnix = creationTime
 	}
 	elapsedTime := currentTime - creationTimeUnix
@@ -786,9 +785,9 @@ func (nsi *NodeServiceImpl) joinRequestResponse(enode string, status string) Suc
 
 func (nsi *NodeServiceImpl) deployContract(pubKeys []string, fileName []string, private bool, url string) []ContractJson {
 	var nodeUrl = url
-	ethClient := client.EthClient{nodeUrl,nsi.FilePath}
+	ethClient := client.EthClient{nodeUrl, nsi.FilePath}
 	fromAddress := ethClient.Coinbase()
-	log.Info("Compiling");
+	log.Info("Compiling")
 	//@TODO: Dont use absolute paths
 	var contractAdd string
 	exists := util.PropertyExists("CONTRACT_ADD", nsi.FilePath)
@@ -796,7 +795,7 @@ func (nsi *NodeServiceImpl) deployContract(pubKeys []string, fileName []string, 
 		p := properties.MustLoadFile(nsi.FilePath, properties.UTF8)
 		contractAdd = util.MustGetString("CONTRACT_ADD", p)
 	}
-	nms := contractclient.NetworkMapContractClient{client.EthClient{url,nsi.FilePath}, contracthandler.ContractParam{fromAddress, contractAdd, "", nil}}
+	nms := contractclient.NetworkMapContractClient{client.EthClient{url, nsi.FilePath}, contracthandler.ContractParam{fromAddress, contractAdd, "", nil}}
 	if private == true && pubKeys[0] == "" {
 		enode := ethClient.AdminNodeInfo().ID
 		peerNo := len(nms.GetNodeDetailsList())
@@ -867,7 +866,7 @@ func (nsi *NodeServiceImpl) deployContract(pubKeys []string, fileName []string, 
 			start = start + 2
 			if j != (len(contractBytecodesAll) - 1) {
 				delimiter := reEnd.FindStringIndex(bytecode)
-				thisContractBytecode = bytecode[start: delimiter[1]-1]
+				thisContractBytecode = bytecode[start : delimiter[1]-1]
 			} else {
 				thisContractBytecode = bytecode[start:]
 			}
@@ -878,7 +877,7 @@ func (nsi *NodeServiceImpl) deployContract(pubKeys []string, fileName []string, 
 			contractJsonArrInternal[j].Bytecode = thisContractBytecode
 			reg, _ := regexp.Compile("[^a-zA-Z0-9]+")
 			byteCodeSanitized := reg.ReplaceAllString(thisContractBytecode, "")
-			log.Info("Compiled Contracts");
+			log.Info("Compiled Contracts")
 			contractAddress := ethClient.DeployContracts(byteCodeSanitized, pubKeys, private)
 			contractJsonArrInternal[j].ContractAddress = contractAddress
 
@@ -918,7 +917,7 @@ func (nsi *NodeServiceImpl) deployContract(pubKeys []string, fileName []string, 
 			start = start + 2
 			if j != (len(contractABIAll) - 1) {
 				delimiter := reEnd.FindStringIndex(abiString)
-				thisContractABI = abiString[start: delimiter[1]-1]
+				thisContractABI = abiString[start : delimiter[1]-1]
 			} else {
 				thisContractABI = abiString[start:]
 			}
@@ -1058,7 +1057,7 @@ func (nsi *NodeServiceImpl) restartCurrentNode() SuccessResponse {
 func (nsi *NodeServiceImpl) latestBlockDetails(url string) LatestBlockResponse {
 	var latestBlockResponse LatestBlockResponse
 	var nodeUrl = url
-	ethClient := client.EthClient{nodeUrl,nsi.FilePath}
+	ethClient := client.EthClient{nodeUrl, nsi.FilePath}
 	currentTime := time.Now().Unix()
 	blockNumber := ethClient.BlockNumber()
 	blockResponseClient := ethClient.GetBlockByNumber(blockNumber)
@@ -1066,9 +1065,9 @@ func (nsi *NodeServiceImpl) latestBlockDetails(url string) LatestBlockResponse {
 	creationTime := blockResponseClient.Timestamp
 	creationTimeInt := util.HexStringtoInt64(creationTime)
 	var creationTimeUnix int64
-	if(nsi.CheckConsensus("RAFT")==true){
+	if nsi.CheckConsensus("RAFT") == true {
 		creationTimeUnix = creationTimeInt / 1000000000
-	} else{
+	} else {
 		creationTimeUnix = creationTimeInt
 	}
 	elapsedTime := currentTime - creationTimeUnix
@@ -1115,7 +1114,7 @@ func (nsi *NodeServiceImpl) latestBlockDetails(url string) LatestBlockResponse {
 
 func (nsi *NodeServiceImpl) latency(url string) []LatencyResponse {
 	var nodeUrl = url
-	ethClient := client.EthClient{nodeUrl,nsi.FilePath}
+	ethClient := client.EthClient{nodeUrl, nsi.FilePath}
 	fromAddress := ethClient.Coinbase()
 	var contractAdd string
 	exists := util.PropertyExists("CONTRACT_ADD", nsi.FilePath)
@@ -1124,7 +1123,7 @@ func (nsi *NodeServiceImpl) latency(url string) []LatencyResponse {
 		contractAdd = util.MustGetString("CONTRACT_ADD", p)
 	}
 
-	nms := contractclient.NetworkMapContractClient{client.EthClient{url,nsi.FilePath}, contracthandler.ContractParam{fromAddress, contractAdd, "", nil}}
+	nms := contractclient.NetworkMapContractClient{client.EthClient{url, nsi.FilePath}, contracthandler.ContractParam{fromAddress, contractAdd, "", nil}}
 
 	peerNo := len(nms.GetNodeDetailsList())
 
@@ -1151,7 +1150,7 @@ func (nsi *NodeServiceImpl) latency(url string) []LatencyResponse {
 
 func (nsi *NodeServiceImpl) transactionSearchDetails(txno string, url string) BlockDetailsResponse {
 	var nodeUrl = url
-	ethClient := client.EthClient{nodeUrl,nsi.FilePath}
+	ethClient := client.EthClient{nodeUrl, nsi.FilePath}
 	txGetClient := ethClient.GetTransactionReceipt(txno)
 	blockNumber := util.HexStringtoInt64(txGetClient.BlockNumber)
 	blockDetailsResponse := nsi.getBlockInfo(blockNumber, url)
@@ -1190,7 +1189,7 @@ func (nsi *NodeServiceImpl) emailServerConfig(host string, port string, username
 }
 
 func (nsi *NodeServiceImpl) healthCheck(url string) {
-	ethClient := client.EthClient{url,nsi.FilePath}
+	ethClient := client.EthClient{url, nsi.FilePath}
 	blockNumber := ethClient.BlockNumber()
 	if blockNumber == "" {
 		if warning > 0 {
@@ -1307,7 +1306,7 @@ func (nsi *NodeServiceImpl) RegisterNodeDetails(url string) {
 		return
 	}
 	var nodeUrl = url
-	var registeredVal,totalNodesString, contractAdd string
+	var registeredVal, totalNodesString, contractAdd string
 	var totalnodes int
 	exists := util.PropertyExists("REGISTERED", nsi.FilePath)
 	if exists != "" {
@@ -1315,7 +1314,7 @@ func (nsi *NodeServiceImpl) RegisterNodeDetails(url string) {
 		registeredVal = util.MustGetString("REGISTERED", p)
 	}
 	if registeredVal != "TRUE" {
-		ethClient := client.EthClient{nodeUrl,nsi.FilePath}
+		ethClient := client.EthClient{nodeUrl, nsi.FilePath}
 
 		enode := ethClient.AdminNodeInfo().ID
 		fromAddress := ethClient.Coinbase()
@@ -1339,14 +1338,14 @@ func (nsi *NodeServiceImpl) RegisterNodeDetails(url string) {
 		util.AppendStringToFile(nsi.FilePath, registered)
 		util.DeleteProperty("REGISTERED=", nsi.FilePath)
 		util.DeleteProperty("ROLE=Unassigned", nsi.FilePath)
-		nms := contractclient.NetworkMapContractClient{client.EthClient{url,nsi.FilePath}, contracthandler.ContractParam{fromAddress, contractAdd, "", nil}}
+		nms := contractclient.NetworkMapContractClient{client.EthClient{url, nsi.FilePath}, contracthandler.ContractParam{fromAddress, contractAdd, "", nil}}
 		nms.RegisterNode(nodename, role, pubKey, enode, ipAddr, id)
 
 		exists := util.PropertyExists("TOTAL_NODES", nsi.FilePath)
 		if exists != "" {
 			p := properties.MustLoadFile(nsi.FilePath, properties.UTF8)
 			totalNodesString = util.MustGetString("TOTAL_NODES", p)
-			totalnodes = util.StringToInt(totalNodesString);
+			totalnodes = util.StringToInt(totalNodesString)
 		}
 
 		for i := 1; i < totalnodes; i++ {
@@ -1377,13 +1376,12 @@ func (nsi *NodeServiceImpl) RegisterNodeDetails(url string) {
 				util.AppendStringToFile(fileName, registered)
 				util.DeleteProperty(strconv.Itoa(i)+"_"+"REGISTERED=", fileName)
 				util.DeleteProperty(strconv.Itoa(i)+"_"+"ROLE=Unassigned", fileName)
-				nms := contractclient.NetworkMapContractClient{client.EthClient{url,nsi.FilePath}, contracthandler.ContractParam{fromAddress, contractAdd, "", nil}}
+				nms := contractclient.NetworkMapContractClient{client.EthClient{url, nsi.FilePath}, contracthandler.ContractParam{fromAddress, contractAdd, "", nil}}
 				fmt.Println(nodename, role, pubKey, enode, ipAddr, id)
 				nms.RegisterNode(nodename, role, pubKey, enode, ipAddr, id)
 			}
 		}
 	}
-
 
 }
 
@@ -1401,8 +1399,9 @@ func (nsi *NodeServiceImpl) NetworkManagerContractDeployer(url string) {
 	if contractAdd == "" {
 		log.Info("Deploying Network Manager Contract")
 		filename := []string{"NetworkManagerContract.sol"}
-		deployedContract := nsi.deployContract(nil, filename, false, url)
-		contAdd := deployedContract[0].ContractAddress
+		//deployedContract := nsi.deployContract(nil, filename, false, url)
+		//contAdd := deployedContract[0].ContractAddress
+		contAdd := "0x0000000000000000000000000000000000002023" 
 		contAddAppend := fmt.Sprint("CONTRACT_ADD=", contAdd, "\n")
 		util.AppendStringToFile(nsi.FilePath, contAddAppend)
 		util.DeleteProperty("CONTRACT_ADD=", nsi.FilePath)
@@ -1443,7 +1442,7 @@ func ConvertToReadable(p client.TransactionDetailsResponse, pending bool, hash b
 }
 
 func (nsi *NodeServiceImpl) CheckGethStatus(url string) bool {
-	ethClient := client.EthClient{url,nsi.FilePath}
+	ethClient := client.EthClient{url, nsi.FilePath}
 	var coinbase string
 	for coinbase == "" {
 		time.Sleep(1 * time.Second)
@@ -1452,19 +1451,19 @@ func (nsi *NodeServiceImpl) CheckGethStatus(url string) bool {
 	return true
 }
 
-func (nsi *NodeServiceImpl) CheckConsensus(consensus string) bool{
-	var registeredVal string = "IBFT"; //default
+func (nsi *NodeServiceImpl) CheckConsensus(consensus string) bool {
+	var registeredVal string = "IBFT" //default
 	exists := util.PropertyExists("CONSENSUS", nsi.FilePath)
 	if exists != "" {
 		p := properties.MustLoadFile(nsi.FilePath, properties.UTF8)
 		registeredVal = util.MustGetString("CONSENSUS", p)
 	}
-	return registeredVal ==consensus
+	return registeredVal == consensus
 
 }
 
 func (nsi *NodeServiceImpl) GetChartData(url string) []ChartInfo {
-	ethClient := client.EthClient{url,nsi.FilePath}
+	ethClient := client.EthClient{url, nsi.FilePath}
 	chartResponse := make([]ChartInfo, chartSize)
 	currentTimeRaw := time.Now().Unix()
 	currentTime := currentTimeRaw - (currentTimeRaw % 60)
@@ -1478,9 +1477,9 @@ func (nsi *NodeServiceImpl) GetChartData(url string) []ChartInfo {
 	blockResponseClient := ethClient.GetBlockByNumber(lastBNoHex)
 	lastCreationTimeRaw := util.HexStringtoInt64(blockResponseClient.Timestamp)
 	var lastCreationTime int64
-	if(nsi.CheckConsensus("RAFT")==true){
+	if nsi.CheckConsensus("RAFT") == true {
 		lastCreationTime = lastCreationTimeRaw / 1000000000
-	} else{
+	} else {
 		lastCreationTime = lastCreationTimeRaw
 	}
 	lastCreationTimeSec := lastCreationTime - (lastCreationTime % 60)
@@ -1493,7 +1492,7 @@ func (nsi *NodeServiceImpl) GetChartData(url string) []ChartInfo {
 				bNoHex := fmt.Sprint("0x", blockNoHex)
 				blockResponseClient := ethClient.GetBlockByNumber(bNoHex)
 				creationTimeRaw := util.HexStringtoInt64(blockResponseClient.Timestamp)
-				if(nsi.CheckConsensus("RAFT")==true){
+				if nsi.CheckConsensus("RAFT") == true {
 					creationTimeRaw = creationTimeRaw / 1000000000
 				}
 				currentTime = creationTimeRaw - (creationTimeRaw % 60)
@@ -1538,7 +1537,7 @@ func (nsi *NodeServiceImpl) ContractCrawler(url string) {
 
 func (nsi *NodeServiceImpl) getContracts(url string) {
 	contractCrawlerMutex = 1
-	ethClient := client.EthClient{url,nsi.FilePath}
+	ethClient := client.EthClient{url, nsi.FilePath}
 	blockNumber := int(util.HexStringtoInt64(ethClient.BlockNumber()))
 	for i := lastCrawledBlock + 1; i <= blockNumber; i++ {
 		blockNoHex := strconv.FormatInt(int64(i), 16)
@@ -1567,9 +1566,9 @@ func (nsi *NodeServiceImpl) getContracts(url string) {
 				}
 				contSenderMap[txGetClient.ContractAddress] = clientTransactions.From
 				contTransactionMap[txGetClient.ContractAddress] = clientTransactions.Hash
-				if(nsi.CheckConsensus("RAFT")==true){
+				if nsi.CheckConsensus("RAFT") == true {
 					contTimeMap[txGetClient.ContractAddress] = strconv.Itoa(int(util.HexStringtoInt64(blockResponseClient.Timestamp) / 1000000000))
-				}else{
+				} else {
 					contTimeMap[txGetClient.ContractAddress] = strconv.Itoa(int(util.HexStringtoInt64(blockResponseClient.Timestamp)))
 				}
 			}
@@ -1594,7 +1593,7 @@ func (nsi *NodeServiceImpl) attachModeRegisterDetails(url string, contractAdd st
 	}
 	nmcBytecodeString := string(nmcBytecode)
 	nmcBytecodeString = strings.Replace(nmcBytecodeString, "\n", "", -1)
-	ethClient := client.EthClient{url,nsi.FilePath}
+	ethClient := client.EthClient{url, nsi.FilePath}
 	bytecode := ethClient.GetCode(contractAdd)
 	hashIndex := len(bytecode) - 68
 	bytecode = bytecode[:hashIndex]
@@ -1834,7 +1833,7 @@ func updateLastCheckedTime(timeVal string) {
 func (nsi *NodeServiceImpl) createAccount(password string, url string) SuccessResponse {
 	var accountDetail SuccessResponse
 	var nodeUrl = url
-	ethClient := client.EthClient{nodeUrl,nsi.FilePath}
+	ethClient := client.EthClient{nodeUrl, nsi.FilePath}
 	accountAddress := ethClient.CreateAccount(password)
 	accountDetail.Status = fmt.Sprint("Account ", accountAddress, " has been created successfully")
 	return accountDetail
@@ -1843,7 +1842,7 @@ func (nsi *NodeServiceImpl) createAccount(password string, url string) SuccessRe
 func (nsi *NodeServiceImpl) getAccounts(url string) []ethAccount {
 	var accountList []ethAccount
 	var nodeUrl = url
-	ethClient := client.EthClient{nodeUrl,nsi.FilePath}
+	ethClient := client.EthClient{nodeUrl, nsi.FilePath}
 	coinbase := ethClient.Coinbase()
 	accounts := ethClient.GetAccounts()
 	for _, accountID := range accounts {
@@ -1862,7 +1861,7 @@ func (nsi *NodeServiceImpl) getNodeIPs(url string) []connectedIP {
 	var nodeUrl = url
 	var ipList []connectedIP
 	var connectedIPs = map[string]int{}
-	ethClient := client.EthClient{nodeUrl,nsi.FilePath}
+	ethClient := client.EthClient{nodeUrl, nsi.FilePath}
 	fromAddress := ethClient.Coinbase()
 	enode := ethClient.AdminNodeInfo().ID
 	var contractAdd string
@@ -1871,7 +1870,7 @@ func (nsi *NodeServiceImpl) getNodeIPs(url string) []connectedIP {
 		p := properties.MustLoadFile(nsi.FilePath, properties.UTF8)
 		contractAdd = util.MustGetString("CONTRACT_ADD", p)
 	}
-	nms := contractclient.NetworkMapContractClient{client.EthClient{url,nsi.FilePath}, contracthandler.ContractParam{fromAddress, contractAdd, "", nil}}
+	nms := contractclient.NetworkMapContractClient{client.EthClient{url, nsi.FilePath}, contracthandler.ContractParam{fromAddress, contractAdd, "", nil}}
 	nodeList := nms.GetNodeDetailsList()
 	for _, node := range nodeList {
 		if node.Enode != enode {
