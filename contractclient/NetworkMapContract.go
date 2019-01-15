@@ -3,11 +3,17 @@ package contractclient
 import (
 	"github.com/synechron-finlabs/quorum-maker-nodemanager/client"
 	"github.com/synechron-finlabs/quorum-maker-nodemanager/contracthandler"
+	"fmt"
+	//log "github.com/sirupsen/logrus"
 )
 
-const registerNodeFunSig = "0x3072b1b2"
-const updateNodeFunSig = "0xaeffe3b7"
-const getNodeDetailsFunSig = "0x7f11a8ed"
+//const registerNodeFunSig = "0x3072b1b2"
+//const updateNodeFunSig = "0xaeffe3b7"
+//const getNodeDetailsFunSig = "0x7f11a8ed"
+
+const registerNodeFunSig = "0x82cb1a2a"
+const updateNodeFunSig = "0xe1d33203"
+const getNodeDetailsFunSig = "0x5afbba47"
 
 type NodeDetails struct {
 	Name      string `json:"nodeName,omitempty"`
@@ -42,7 +48,7 @@ func (nmc *NetworkMapContractClient) RegisterNode(name string, role string, publ
 			return "Exists"
 		}
 	}
-	return nmc.SendTransaction(nmc.ContractParam, RegisterUpdateNodeFuncHandler{nd, registerNodeFunSig})
+	return nmc.SendRawTransaction(nmc.ContractParam, RegisterUpdateNodeFuncHandler{nd, registerNodeFunSig},1)
 
 }
 
@@ -69,14 +75,13 @@ func (nmc *NetworkMapContractClient) GetNodeDetailsList() []NodeDetails {
 	for i := 0; true; i++ {
 		encoderDecoder := GetNodeDetailsFuncHandler{index: i, funcSig: getNodeDetailsFunSig}
 		nmc.EthCall(nmc.ContractParam, encoderDecoder, &encoderDecoder)
-
+		fmt.Println(encoderDecoder.result.Enode);
 		if encoderDecoder.result.Enode != "" && len(encoderDecoder.result.Enode) > 0 {
 			list = append(list, encoderDecoder.result)
 		} else {
 			return list
 		}
 	}
-
 	return list
 }
 
@@ -87,7 +92,7 @@ func (nmc *NetworkMapContractClient) UpdateNode(name string, role string, public
 	}
 
 	nd := NodeDetails{name, role, publicKey, enode, ip, id}
-	return nmc.SendTransaction(nmc.ContractParam, RegisterUpdateNodeFuncHandler{nd, updateNodeFunSig})
+	return nmc.SendRawTransaction(nmc.ContractParam, RegisterUpdateNodeFuncHandler{nd, updateNodeFunSig},1)
 }
 
 type RegisterUpdateNodeFuncHandler struct {

@@ -16,6 +16,9 @@ import (
 
 var nodeUrl = "http://localhost:22000"
 var listenPort = ":8000"
+var gethLogsDirectory = "./gethLogs"
+var constellationLogsDirectory ="./constellationLogs"
+var filePath = "/quorum-maker/setup.conf"
 
 func init() {
 	log.SetFormatter(&log.JSONFormatter{})
@@ -33,15 +36,27 @@ func main() {
 		listenPort = ":" + os.Args[2]
 	}
 
+	if len(os.Args) > 3 {
+		gethLogsDirectory = os.Args[3]
+	}
+
+	if len(os.Args) > 4 {
+		constellationLogsDirectory = os.Args[4]
+	}
+
+	if len(os.Args) > 5 {
+		filePath = os.Args[5]
+	}
+
 	router := mux.NewRouter()
-	nodeService := service.NodeServiceImpl{nodeUrl}
+	nodeService := service.NodeServiceImpl{nodeUrl,filePath}
 
 	ticker := time.NewTicker(86400 * time.Second)
 	go func() {
 		for range ticker.C {
 			log.Debug("Rotating log for Geth and Constellation.")
-			nodeService.LogRotaterGeth()
-			nodeService.LogRotaterConst()
+			nodeService.LogRotaterGeth(gethLogsDirectory)
+			nodeService.LogRotaterConst(constellationLogsDirectory)
 		}
 	}()
 
@@ -55,7 +70,7 @@ func main() {
 		nodeService.IPWhitelister()
 	}()
 
-	networkMapService := contractclient.NetworkMapContractClient{EthClient: client.EthClient{nodeUrl}}
+	networkMapService := contractclient.NetworkMapContractClient{EthClient: client.EthClient{nodeUrl,filePath}}
 	router.HandleFunc("/txn/{txn_hash}", nodeService.GetTransactionInfoHandler).Methods("GET")
 	router.HandleFunc("/txn", nodeService.GetLatestTransactionInfoHandler).Methods("GET")
 	router.HandleFunc("/block/{block_no}", nodeService.GetBlockInfoHandler).Methods("GET")
@@ -100,9 +115,9 @@ func main() {
 	router.HandleFunc("/updateWhitelist", nodeService.UpdateWhitelistHandler).Methods("POST")
 	router.HandleFunc("/updateWhitelist", nodeService.OptionsHandler).Methods("OPTIONS")
 
-	router.PathPrefix("/contracts").Handler(http.StripPrefix("/contracts", http.FileServer(http.Dir("/root/quorum-maker/contracts"))))
-	router.PathPrefix("/geth").Handler(http.StripPrefix("/geth", http.FileServer(http.Dir("/home/node/qdata/gethLogs"))))
-	router.PathPrefix("/constellation").Handler(http.StripPrefix("/constellation", http.FileServer(http.Dir("/home/node/qdata/constellationLogs"))))
+	router.PathPrefix("/contracts").Handler(http.StripPrefix("/contracts", http.FileServer(http.Dir("./contracts"))))
+	router.PathPrefix("/geth").Handler(http.StripPrefix("/geth", http.FileServer(http.Dir(gethLogsDirectory))))
+	router.PathPrefix("/constellation").Handler(http.StripPrefix("/constellation", http.FileServer(http.Dir(constellationLogsDirectory))))
 	router.PathPrefix("/").Handler(http.StripPrefix("/", NewFileServer("NodeManagerUI")))
 
 	log.Info(fmt.Sprintf("Node Manager listening on %s...", listenPort))

@@ -3,7 +3,7 @@ package contracthandler
 import (
 	"bytes"
 	"github.com/synechron-finlabs/quorum-maker-nodemanager/util"
-	"strings"		
+	"strings"	
 )
 
 
@@ -92,7 +92,6 @@ func (fp FunctionProcessor) Decode(encodedString string) []interface{} {
 	}
 
 	nextIndex := 0
-
 	for i := range strings.Split(fp.Signature, ",") {
 		ni, result := datatypes[i].Decode(data, nextIndex)
 
@@ -100,7 +99,6 @@ func (fp FunctionProcessor) Decode(encodedString string) []interface{} {
 
 		results[i] = result
 	}
-
 	return results
 }
 
