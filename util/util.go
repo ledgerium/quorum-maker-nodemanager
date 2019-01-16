@@ -47,6 +47,16 @@ func HexStringtoInt64(hexVal string) (intVal int64) {
 	return intVal
 }
 
+func HexStringtoUInt64(hexVal string) (intVal uint64) {
+	hexVal = strings.TrimSuffix(hexVal, "\n")
+	hexVal = strings.TrimPrefix(hexVal, "0x")
+	intVal, err := strconv.ParseUint(hexVal, 16, 64)
+	if err != nil {
+	}
+	return intVal
+}
+
+
 func HexStringtoLargeInt64(hexVal string) string {
 	hexVal = strings.TrimSuffix(hexVal, "\n")
 	hexVal = strings.TrimPrefix(hexVal, "0x")
