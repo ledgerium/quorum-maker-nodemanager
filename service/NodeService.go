@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-gomail/gomail"
 	"github.com/magiconair/properties"
 	log "github.com/sirupsen/logrus"
 	"github.com/synechron-finlabs/quorum-maker-nodemanager/client"
@@ -1398,10 +1399,10 @@ func (nsi *NodeServiceImpl) NetworkManagerContractDeployer(url string) {
 	}
 	if contractAdd == "" {
 		log.Info("Deploying Network Manager Contract")
-		filename := []string{"NetworkManagerContract.sol"}
+		//filename := []string{"NetworkManagerContract.sol"}
 		//deployedContract := nsi.deployContract(nil, filename, false, url)
 		//contAdd := deployedContract[0].ContractAddress
-		contAdd := "0x0000000000000000000000000000000000002023" 
+		contAdd := "0x0000000000000000000000000000000000002023"
 		contAddAppend := fmt.Sprint("CONTRACT_ADD=", contAdd, "\n")
 		util.AppendStringToFile(nsi.FilePath, contAddAppend)
 		util.DeleteProperty("CONTRACT_ADD=", nsi.FilePath)
